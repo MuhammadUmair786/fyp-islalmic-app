@@ -1,0 +1,22 @@
+# IDE files
+.idea/
+*.iml
+*.iws
+
+# Flutter/Dart
+**/doc/api/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/.pub-cache/
+**/.pub/
+**/build/
+
+# Android
+**/android/app/src/main/res/values/colors.xml
+**/android/app/src/main/res/values/styles.xml
+**/android/app/src/main/res/values-night/styles.xml
+
+# Log files
+*.log
