@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "931378336633",
+    "project_id": "digital-islamic-hub-29dd5",
+    "storage_bucket": "digital-islamic-hub-29dd5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:931378336633:android:37a46a799e8f94b525d5a8",
+        "android_client_info": {
+          "package_name": "com.example.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4mT164t0B_XNStogfHewCjOIrgrCriN4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:931378336633:android:f254010de7275ab425d5a8",
+        "android_client_info": {
+          "package_name": "com.example.digital_islamic_hub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4mT164t0B_XNStogfHewCjOIrgrCriN4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,84 @@
+name: digital_islamic_hub_new
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  firebase_core: ^4.9.0
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  path_provider: ^2.1.1
+  animate_do: ^3.3.4
+  google_fonts: ^6.1.0
+  geolocator: ^13.0.1
+  adhan: any
+  intl: ^0.19.0
+  flutter_local_notifications: ^17.1.2
+  timezone: ^0.9.4
+  audioplayers: ^6.0.0
+  shared_preferences: ^2.2.2
+  vibration: ^2.0.1
+  http: ^1.6.0
+  firebase_auth: ^6.5.1
+  image_picker: ^1.0.7
+  image_cropper: ^12.2.1
+  cloud_firestore: ^6.4.1
+  cloudinary_public: 0.23.1
+  intl_phone_field: ^3.2.0
+  hijri: ^3.0.0
+  url_launcher: ^6.3.2
+  share_plus: ^10.1.4
+  flutter_cached_pdfview: ^0.4.4
+  syncfusion_flutter_pdfviewer: ^28.2.12
+  dio: ^5.7.0
+  universal_html: ^2.2.4
+  flutter_compass: ^0.8.1
+  permission_handler: 11.3.1
+  google_maps_flutter: ^2.18.0
+  flutter_background_service: ^5.1.0
+  geocoding: 3.0.0
+  geofence_service: ^6.0.0+1
+  flutter_sound: ^9.30.0
+  flutter_volume_controller: ^2.0.1
+  sensors_plus: ^5.0.0
+  google_sign_in: ^6.2.1
+  webview_flutter: ^4.10.0
+  flutter_dotenv: ^6.0.1
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1 # Latest version
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - assets/database/quran_final_authentic_v2.db
+    - assets/database/hadiths_only.db
+    - assets/database/hadith_metadata.db
+    - assets/images/
+    - assets/images/app_logo.png
+    - assets/audio/azan.mp3
+    - assets/data/chapter_names.json
+
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_logo.png"
+  min_sdk_android: 21 # optional
+
+
+

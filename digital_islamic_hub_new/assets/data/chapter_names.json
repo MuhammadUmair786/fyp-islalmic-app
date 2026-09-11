@@ -1,0 +1,41 @@
+{
+  "bukhari": {
+    "1": "Revelation (وحى کا بیان)",
+    "2": "Belief (ایمان کا بیان)",
+    "3": "Knowledge (علم کا بیان)",
+    "4": "Ablution - Wudu (وضو کا بیان)",
+    "5": "Bathing - Ghusl (غسل کا بیان)",
+    "6": "Menses - Haidh (حیض کا بیان)",
+    "7": "Rubbing hands & feet with dust - Tayammum (تیمم کا بیان)",
+    "8": "Prayers - Salat (نماز کا بیان)",
+    "9": "Virtues of the Prayer (فضائل نماز)",
+    "10": "Times of the Prayers (اوقات نماز)"
+  },
+  "muslim": {
+    "1": "Faith - Iman (ایمان کا بیان)",
+    "2": "Purification - Taharah (طہارت کا بیان)",
+    "3": "Menstruation - Haidh (حیض کا بیان)",
+    "4": "Prayer - Salat (نماز کا بیان)",
+    "5": "Mosques and Places of Worship (مساجد کا بیان)",
+    "6": "Prayer - Travelers (مسافر کی نماز)",
+    "7": "Friday Prayer - Jumu'ah (جمعہ کی نماز)",
+    "8": "Prayer - Two Eids (عیدین کی نماز)"
+  },
+  "abu_dawud": {
+    "1": "Purification - Taharah (طہارت کا بیان)",
+    "2": "Prayer - Salat (نماز کا بیان)",
+    "3": "The Book Of Rain - Istisq'a (استسقاء کا بیان)",
+    "4": "Prayer - Eclipse (کسوف کا بیان)",
+    "5": "Prayer - Travel (سفر کی نماز)",
+    "6": "Voluntary Prayers (نوافل کا بیان)"
+  },
+  "tirmidhi": {
+    "1": "Purification - Taharah (طہارت کا بیان)",
+    "2": "Prayer - Salat (نماز کا بیان)",
+    "3": "Witr Prayer (وتر کا بیان)",
+    "4": "Friday Prayer - Jumu'ah (جمعہ کا بیان)",
+    "5": "Two Eids (عیدین کا بیان)",
+    "6": "Travel - Safar (سفر کا بیان)",
+    "7": "Zakat (زکوٰۃ کا بیان)"
+  }
+}
