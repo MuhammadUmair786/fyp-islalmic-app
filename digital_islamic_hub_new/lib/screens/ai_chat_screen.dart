@@ -188,34 +188,48 @@ class _AIChatScreenState extends State<AIChatScreen> {
         }
       }
 
-      final apiKey = AppEnv.aiApiKey;
+      final apiKey = AppEnv.aiApiKey.trim(); // Ensure no hidden spaces
       if (apiKey.isEmpty) {
         throw StateError('missing_api_key');
       }
 
+      debugPrint('🤖 [AI] Sending request to OpenRouter with model: openrouter/auto');
+      
       final response = await http.post(
         Uri.parse('https://openrouter.ai/api/v1/chat/completions'),
         headers: {
           'Authorization': 'Bearer $apiKey',
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://digitalislamichub.com',
+          'X-Title': 'Digital Islamic Hub',
         },
         body: jsonEncode({
-          'model': 'google/learnlm-1.5-pro-experimental:free',
+          'model': 'openrouter/auto',
           'messages': [
             {
               'role': 'system',
               'content':
-                  'You are an expert Islamic Scholar (Mufti). Answer all user queries strictly based on the Quran and authentic Hadith with references.'
+                  'You are an expert Islamic Scholar (Mufti). Answer all user queries strictly based on the Quran and authentic Hadith with references. Use a polite and helpful tone. Always start with Salaam.'
             },
             ..._messages,
           ],
         }),
-      );
+      ).timeout(const Duration(seconds: 40));
+
+      debugPrint('🤖 AI Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final aiText = data['choices'][0]['message']['content'] as String? ?? '';
+        final choices = data['choices'] as List?;
+        if (choices == null || choices.isEmpty) {
+           throw Exception('AI returned no response choices.');
+        }
+        
+        final aiText = choices[0]['message']?['content'] as String? ?? '';
+        
+        if (aiText.isEmpty) {
+          throw Exception('AI returned an empty message.');
+        }
 
         if (mounted) {
           setState(() {
@@ -252,12 +266,18 @@ class _AIChatScreenState extends State<AIChatScreen> {
         throw Exception('AI request failed (${response.statusCode})');
       }
     } catch (e) {
+      debugPrint('❌ [AI Error Detail] $e');
       if (mounted) {
-        final message = e is StateError && e.message == 'missing_api_key'
-            ? 'AI is not configured. Add AI_API_KEY to your .env file.'
-            : 'Connection error. Please try again.';
+        String message = 'AI Error: ${e.toString().replaceAll('Exception:', '')}';
+        if (e is StateError && e.message == 'missing_api_key') {
+          message = 'AI API Key is missing in .env file.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {
@@ -302,16 +322,18 @@ class _AIChatScreenState extends State<AIChatScreen> {
         ],
       ),
       drawer: _buildHistoryDrawer(isDark),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoadingHistory
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.accentGreen))
-                : ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          children: [
+            Expanded(
+              child: _isLoadingHistory
+                  ? const Center(child: CircularProgressIndicator(color: AppTheme.accentGreen))
+                  : ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
                 final msg = _messages[index];
                 final isUser = msg["role"] == "user";
 
@@ -352,28 +374,69 @@ class _AIChatScreenState extends State<AIChatScreen> {
             ),
           ),
           if (_isTyping)
-            const Padding(padding: EdgeInsets.all(10), child: Text("Scholar is typing...", style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey))),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentGreen),
+                  ),
+                  SizedBox(width: 10),
+                  Text("Islamic AI Assistant is typing...", style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey)),
+                ],
+              ),
+            ),
           _buildInput(isDark),
         ],
+      ),
       ),
     );
   }
 
   Widget _buildInput(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black),
-              decoration: const InputDecoration(hintText: "Ask something...", border: InputBorder.none),
-              onSubmitted: (_) => _sendMessage(),
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade300),
+          boxShadow: [
+            if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: InputDecoration(
+                  hintText: "Ask your Islamic query...",
+                  hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                ),
+                onSubmitted: (_) => _sendMessage(),
+              ),
             ),
-          ),
-          IconButton(icon: const Icon(Icons.send, color: AppTheme.accentGreen), onPressed: _sendMessage),
-        ],
+            Material(
+              color: AppTheme.accentGreen,
+              borderRadius: BorderRadius.circular(24),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_upward_rounded, color: Colors.white),
+                onPressed: _sendMessage,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
       ),
     );
   }

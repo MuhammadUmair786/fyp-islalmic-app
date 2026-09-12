@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'user_answer_screen.dart';
+import 'user_book_list_view.dart'; // 👈 Book list screen ka import
 import '../theme/app_theme.dart';
 
 class UserNotificationScreen extends StatelessWidget {
@@ -23,7 +24,7 @@ class UserNotificationScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('notifications')
-            .orderBy('timestamp', descending: true)
+            .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -41,10 +42,15 @@ class UserNotificationScreen extends StatelessWidget {
             String targetRole = data['targetRole'] ?? '';
             String title = (data['title'] ?? '').toString().toLowerCase();
 
+            // 👈 Yeh filter scholar aur admin ke notifications ko user screen par aane se rokey ga (lekin 'all_users' ko allow karega)
+            if (targetRole == 'scholar' || targetRole == 'admin') {
+              return false;
+            }
+
             if (notifUserId.isNotEmpty && notifUserId != currentUserId) {
               return false;
             }
-            if (targetRole == 'admin' || title.contains('new payment & question')) {
+            if (title.contains('new payment & question')) {
               return false;
             }
             return true;
@@ -62,22 +68,16 @@ class UserNotificationScreen extends StatelessWidget {
               String docId = docs[index].id;
               bool isRead = data['isRead'] ?? false;
 
-              String rawTitle = data['title'] ?? data['heading'] ?? 'Answer Received!';
-              String title = rawTitle;
-              if (rawTitle.toLowerCase().contains('answer received') || rawTitle.toLowerCase().contains('new answer')) {
-                title = 'Answer Received!';
-              }
-
-              String rawBody = data['body'] ?? data['message'] ?? data['description'] ?? 'Your question has been answered.';
-              String body = rawBody;
-              if (rawBody.toLowerCase().contains('has answered your question')) {
-                body = "A scholar has responded to your question.";
-              }
+              String title = data['title'] ?? 'Notification';
+              String titleLower = title.toLowerCase();
+              String targetRole = data['targetRole'] ?? '';
+              String body = data['body'] ?? data['message'] ?? '';
 
               String formattedDate = '';
-              if (data['timestamp'] != null) {
+              var rawTimestamp = data['createdAt'] ?? data['timestamp'];
+              if (rawTimestamp != null) {
                 try {
-                  Timestamp timestamp = data['timestamp'];
+                  Timestamp timestamp = rawTimestamp;
                   DateTime dateTime = timestamp.toDate();
                   formattedDate = DateFormat('MMM d, yyyy - hh:mm a').format(dateTime);
                 } catch (e) {
@@ -142,7 +142,6 @@ class UserNotificationScreen extends StatelessWidget {
                       ],
                     ],
                   ),
-                  // 🚀 Delete Button Added Here
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
                     tooltip: "Delete Notification",
@@ -152,15 +151,6 @@ class UserNotificationScreen extends StatelessWidget {
                             .collection('notifications')
                             .doc(docId)
                             .delete();
-
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Notification deleted successfully"),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
                       } catch (e) {
                         debugPrint("Error deleting notification: $e");
                       }
@@ -173,12 +163,22 @@ class UserNotificationScreen extends StatelessWidget {
                         .update({'isRead': true});
 
                     if (context.mounted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const UserAnswerScreen(),
-                        ),
-                      );
+                      // 👈 Agar notification book upload ka hai to UserBookListView par jayein, warna UserAnswerScreen par
+                      if (targetRole == 'all_users' || titleLower.contains('book')) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const UserBookListView(),
+                          ),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const UserAnswerScreen(),
+                          ),
+                        );
+                      }
                     }
                   },
                 ),

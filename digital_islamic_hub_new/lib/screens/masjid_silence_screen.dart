@@ -210,7 +210,7 @@ class _MasjidSettingsScreenState extends State<MasjidSettingsScreen> {
       'active_masjid_lng': _selectedLng ?? 0.0,
     });
 
-    _showSnackBar("Mosque removed from saved list.", Colors.grey.shade800);
+    _showSnackBar("Mosque removed from saved list.", Colors.redAccent);
   }
 
   /// Select a saved mosque as current active
@@ -228,8 +228,22 @@ class _MasjidSettingsScreenState extends State<MasjidSettingsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            Icon(
+              bgColor == Colors.red || bgColor == Colors.redAccent ? Icons.error_outline : Icons.check_circle_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500))),
+          ],
+        ),
         backgroundColor: bgColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(12),
+        duration: const Duration(seconds: 3),
       ),
     );
   }

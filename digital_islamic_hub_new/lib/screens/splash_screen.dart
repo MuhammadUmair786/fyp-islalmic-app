@@ -22,9 +22,6 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      FlutterNativeSplash.remove();
-    });
     _navigateToNext();
   }
 
@@ -42,7 +39,8 @@ class _SplashScreenState extends State<SplashScreen> {
       destination = const LoginScreen();
     }
 
-    const minDisplay = Duration(milliseconds: 1600);
+    // Minimum display time (2.5 seconds) to ensure user can enjoy the beautiful splash
+    const minDisplay = Duration(milliseconds: 2500);
     final elapsed = DateTime.now().difference(started);
     if (elapsed < minDisplay) {
       await Future.delayed(minDisplay - elapsed);
@@ -51,7 +49,13 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => destination),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => destination,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 800),
+      ),
     );
   }
 
@@ -64,11 +68,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (scholarDoc.exists) {
         final data = scholarDoc.data() as Map<String, dynamic>;
-        final status =
-            (data['status'] ?? 'pending').toString().toLowerCase().trim();
+        final status = (data['status'] ?? 'pending').toString().toLowerCase().trim();
         if (status == 'approved') return const ScholarDashboard();
-        final hasPhoneAndImage =
-            data.containsKey('phone') && data.containsKey('image');
+        final hasPhoneAndImage = data.containsKey('phone') && data.containsKey('image');
         final profileCompleted = data['profileCompleted'] ?? hasPhoneAndImage;
         if (profileCompleted != true) return const ScholarDetailsScreen();
         return const LoginScreen();
@@ -90,111 +92,121 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.sizeOf(context);
-    final logoRadius = size.shortestSide < 360 ? 42.0 : 50.0;
+    final logoRadius = size.shortestSide < 360 ? 45.0 : 55.0;
 
     return Scaffold(
       body: Container(
         width: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: isDark
-                ? [const Color(0xFF002419), const Color(0xFF00110C)]
-                : [AppTheme.primaryLight, AppTheme.primaryDark],
+                ? [const Color(0xFF002419), const Color(0xFF00110C), const Color(0xFF000806)]
+                : [const Color(0xFF004D40), const Color(0xFF002419)],
           ),
         ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    FadeInDown(
-                      duration: const Duration(milliseconds: 1500),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.1),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.accentGreen.withValues(alpha: 0.2),
-                              blurRadius: 40,
-                              spreadRadius: 5,
-                            )
-                          ],
+        child: Stack(
+          children: [
+            // Background Decorative Elements
+            Positioned(
+              top: -50,
+              right: -50,
+              child: Opacity(
+                opacity: 0.05,
+                child: Icon(Icons.mosque, size: 250, color: AppTheme.accentGreen),
+              ),
+            ),
+            
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo with glow effect
+                  ZoomIn(
+                    duration: const Duration(milliseconds: 1200),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.accentGreen.withValues(alpha: 0.3),
+                            blurRadius: 50,
+                            spreadRadius: 10,
+                          )
+                        ],
+                      ),
+                      child: AppLogo(radius: logoRadius),
+                    ),
+                  ),
+                  const SizedBox(height: 35),
+                  
+                  // App Name with specialized font
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 1000),
+                    delay: const Duration(milliseconds: 400),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Digital Islamic Hub',
+                          style: GoogleFonts.philosopher(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          ),
                         ),
-                        child: AppLogo(radius: logoRadius),
+                        const SizedBox(height: 10),
+                        
+                        // Tagline
+                        Text(
+                          'Your Spiritual Companion',
+                          style: GoogleFonts.poppins(
+                            color: AppTheme.accentGreen.withValues(alpha: 0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Bottom Loading Section
+            Positioned(
+              bottom: 80,
+              left: 0,
+              right: 0,
+              child: FadeIn(
+                delay: const Duration(milliseconds: 800),
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      width: 60,
+                      child: LinearProgressIndicator(
+                        backgroundColor: Colors.white10,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentGreen),
                       ),
                     ),
-                    const SizedBox(height: 30),
-                    FadeInUp(
-                      duration: const Duration(milliseconds: 1500),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          children: [
-                            FittedBox(
-                              child: Text(
-                                'Digital Islamic Hub',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Your Spiritual Companion',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                color: Colors.white70,
-                                fontSize: 14,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Loading App Data',
+                      style: GoogleFonts.amiri(
+                        color: Colors.white38,
+                        fontSize: 16,
+                        letterSpacing: 1.2,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
                   ],
                 ),
               ),
-              Positioned(
-                bottom: 60,
-                left: 0,
-                right: 0,
-                child: FadeIn(
-                  delay: const Duration(milliseconds: 400),
-                  child: Column(
-                    children: [
-                      const SizedBox(
-                        width: 30,
-                        height: 30,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              AppTheme.accentGreen),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Loading App Data',
-                        style: GoogleFonts.amiri(
-                          color: Colors.white38,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

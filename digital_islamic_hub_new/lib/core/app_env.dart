@@ -9,9 +9,10 @@ class AppEnv {
     try {
       await dotenv.load(fileName: '.env');
       _loaded = true;
+      debugPrint('dotenv: loaded .env successfully. AI_API_KEY present: ${dotenv.env['AI_API_KEY'] != null}');
       return;
-    } catch (_) {
-      // Fall through to the committed example file.
+    } catch (e) {
+      debugPrint('dotenv: .env load failed ($e). Trying fallback...');
     }
     try {
       await dotenv.load(fileName: '.env.example');

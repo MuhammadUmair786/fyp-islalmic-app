@@ -282,12 +282,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Stack(
           children: [
             GestureDetector(
-              onTap: _isUploading ? null : _pickAndCropImage,
-              child: CircleAvatar(
-                radius: 45,
-                backgroundColor: AppTheme.accentGreen.withValues(alpha: 0.1),
-                backgroundImage: (_profileImageUrl != null) ? NetworkImage(_profileImageUrl!) : null,
-                child: (_profileImageUrl == null) ? const Icon(Icons.person, size: 40, color: AppTheme.accentGreen) : null,
+              onTap: () {
+                if (_profileImageUrl != null) {
+                  _showFullImage(_profileImageUrl!);
+                }
+              },
+              child: Hero(
+                tag: 'profile_pic',
+                child: CircleAvatar(
+                  radius: 45,
+                  backgroundColor: AppTheme.accentGreen.withValues(alpha: 0.1),
+                  backgroundImage: (_profileImageUrl != null) ? NetworkImage(_profileImageUrl!) : null,
+                  child: (_profileImageUrl == null) ? const Icon(Icons.person, size: 40, color: AppTheme.accentGreen) : null,
+                ),
               ),
             ),
             Positioned(
@@ -312,6 +319,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         Text(user?.email ?? "", style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
+    );
+  }
+
+  void _showFullImage(String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: Center(
+            child: Hero(
+              tag: 'profile_pic',
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const CircularProgressIndicator(color: AppTheme.accentGreen);
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

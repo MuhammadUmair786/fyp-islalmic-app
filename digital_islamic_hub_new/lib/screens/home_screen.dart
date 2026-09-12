@@ -58,6 +58,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // Listen to prayer time updates to keep Home Screen in sync with other screens
+    PrayerService.prayerTimesNotifier.addListener(_onPrayerTimesUpdated);
+    
     // 🚀 Speed Optimization: Load quick cached times immediately
     _loadQuickPrayerTimes();
     
@@ -74,6 +78,21 @@ class _HomeScreenState extends State<HomeScreen> {
         _refreshPrayerTimes();
       }
     });
+  }
+
+  void _onPrayerTimesUpdated() {
+    if (mounted) {
+      setState(() {
+        _cachedPrayerTimes = PrayerService.prayerTimesNotifier.value;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    PrayerService.prayerTimesNotifier.removeListener(_onPrayerTimesUpdated);
+    SafarDuaService.stop();
+    super.dispose();
   }
 
   Future<void> _loadQuickPrayerTimes() async {
@@ -129,12 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint("Share Error: $e");
     }
-  }
-
-  @override
-  void dispose() {
-    SafarDuaService.stop();
-    super.dispose();
   }
 
   Future<void> _checkAndResetStreak() async {
@@ -200,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Text(isUrdu ? "آپ کیسا محسوس کر رہے ہیں؟" : "How are you feeling?", 
                 style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87)),
             ),
@@ -239,39 +252,94 @@ class _HomeScreenState extends State<HomeScreen> {
               const Padding(padding: EdgeInsets.all(20.0), child: Center(child: CircularProgressIndicator(color: AppTheme.accentGreen, strokeWidth: 2)))
             else if (_activeAyahData != null)
               Container(
-                margin: const EdgeInsets.fromLTRB(20, 15, 20, 5),
+                margin: const EdgeInsets.fromLTRB(20, 15, 20, 10),
                 child: Stack(
                   children: [
                     RepaintBoundary(
                       key: _moodShareKey,
                       child: Container(
-                        padding: const EdgeInsets.all(18),
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: isDark ? Colors.white10 : AppTheme.accentGreen.withValues(alpha: 0.2)),
-                          boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6))],
+                          gradient: LinearGradient(
+                            colors: isDark 
+                                ? [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.05)]
+                                : [Colors.white, const Color(0xFFF1F8E9)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: isDark ? Colors.white12 : AppTheme.accentGreen.withValues(alpha: 0.3), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            )
+                          ],
                         ),
                         child: Column(
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text("Surah ${_activeAyahData!['surah_no']}:${_activeAyahData!['ayah_no']}", style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentGreen)),
-                                const SizedBox(width: 70),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.accentGreen.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    "Surah ${_activeAyahData!['surah_no']}:${_activeAyahData!['ayah_no']}",
+                                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight),
+                                  ),
+                                ),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(_activeAyahData!['arabic_text'] ?? "", textAlign: TextAlign.center, textDirection: TextDirection.rtl, style: GoogleFonts.amiri(fontSize: 20, color: isDark ? Colors.white : AppTheme.primaryLight, height: 1.5, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 12),
-                            Text(isUrdu ? (_activeAyahData!['urdu_trans'] ?? "") : (_activeAyahData!['eng_trans'] ?? ""), textAlign: TextAlign.center, textDirection: isUrdu ? TextDirection.rtl : TextDirection.ltr, style: isUrdu ? GoogleFonts.notoNastaliqUrdu(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87, height: 2.1) : GoogleFonts.poppins(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade700)),
-                            const SizedBox(height: 15),
+                            const SizedBox(height: 20),
+                            ShaderMask(
+                              shaderCallback: (bounds) => LinearGradient(
+                                colors: isDark ? [Colors.white, Colors.white70] : [AppTheme.primaryLight, const Color(0xFF004D40)],
+                              ).createShader(bounds),
+                              child: Text(
+                                _activeAyahData!['arabic_text'] ?? "",
+                                textAlign: TextAlign.center,
+                                textDirection: TextDirection.rtl,
+                                style: GoogleFonts.amiri(
+                                  fontSize: 24,
+                                  color: Colors.white,
+                                  height: 1.6,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              child: Text(
+                                isUrdu ? (_activeAyahData!['urdu_trans'] ?? "") : (_activeAyahData!['eng_trans'] ?? ""),
+                                textAlign: TextAlign.center,
+                                textDirection: isUrdu ? TextDirection.rtl : TextDirection.ltr,
+                                style: isUrdu 
+                                  ? GoogleFonts.notoNastaliqUrdu(fontSize: 15, color: isDark ? Colors.white70 : Colors.black87, height: 2.3)
+                                  : GoogleFonts.poppins(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54, fontStyle: FontStyle.italic, height: 1.5),
+                              ),
+                            ),
+                            const SizedBox(height: 25),
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text("Digital Islamic Hub", style: GoogleFonts.poppins(fontSize: 9, color: Colors.grey.withValues(alpha: 0.5))),
+                                const AppLogo(radius: 10),
                                 const SizedBox(width: 8),
-                                const AppLogo(radius: 9),
+                                Text(
+                                  "Digital Islamic Hub",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark ? Colors.white30 : Colors.grey.shade400,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -279,11 +347,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     Positioned(
-                      top: 10, right: 10,
+                      top: 15,
+                      right: 15,
                       child: Row(
                         children: [
-                          IconButton(icon: const Icon(Icons.share_outlined, color: Colors.blueAccent, size: 18), onPressed: () => _shareMoodAyah("Surah ${_activeAyahData!['surah_no']}:${_activeAyahData!['ayah_no']}\nShared via Digital Islamic Hub"), visualDensity: VisualDensity.compact),
-                          IconButton(icon: const Icon(Icons.close, color: Colors.redAccent, size: 18), onPressed: () => setState(() { _activeAyahData = null; _selectedMood = null; }), visualDensity: VisualDensity.compact),
+                          _circleIconButton(
+                            icon: Icons.share_rounded,
+                            color: Colors.blue.withValues(alpha: 0.1),
+                            iconColor: Colors.blueAccent,
+                            onTap: () => _shareMoodAyah("Surah ${_activeAyahData!['surah_no']}:${_activeAyahData!['ayah_no']}\nShared via Digital Islamic Hub"),
+                          ),
+                          const SizedBox(width: 8),
+                          _circleIconButton(
+                            icon: Icons.close_rounded,
+                            color: Colors.red.withValues(alpha: 0.1),
+                            iconColor: Colors.redAccent,
+                            onTap: () => setState(() { _activeAyahData = null; _selectedMood = null; }),
+                          ),
                         ],
                       ),
                     ),
@@ -337,7 +417,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text("Assalamu Alaikum, ", style: GoogleFonts.poppins(color: isDark ? Colors.white70 : Colors.black54, fontSize: 16, fontWeight: FontWeight.w500)),
-                    Text(name, style: GoogleFonts.poppins(color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight, fontWeight: FontWeight.bold, fontSize: 22, height: 1.1)),
+                    Text(name, style: GoogleFonts.poppins(color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight, fontWeight: FontWeight.bold, fontSize: 20, height: 1.1)),
                   ],
                 ),
               ],
@@ -378,7 +458,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final pt = _cachedPrayerTimes!;
     Prayer current = pt.currentPrayer();
-    Prayer next = pt.nextPrayer() == Prayer.none ? Prayer.fajr : pt.nextPrayer();
+    Prayer next = pt.nextPrayer();
+    
+    DateTime? currentTime = pt.timeForPrayer(current);
+    DateTime? nextTime = pt.timeForPrayer(next);
+    
+    String currentName = current == Prayer.none ? "---" : current.name.toUpperCase();
+    String nextName = next.name.toUpperCase();
+
+    // Handle case where next prayer is tomorrow (e.g. after Isha)
+    if (next == Prayer.none) {
+      nextName = "FAJR";
+      final tomorrow = DateTime.now().add(const Duration(days: 1));
+      final tomorrowPt = PrayerTimes(
+        pt.coordinates,
+        DateComponents.from(tomorrow),
+        pt.calculationParameters,
+      );
+      nextTime = tomorrowPt.fajr;
+    }
+
+    // Handle case before Fajr (Current is none, Next is Fajr)
+    if (current == Prayer.none && next == Prayer.fajr) {
+       currentName = "ISHA";
+       final yesterday = DateTime.now().subtract(const Duration(days: 1));
+       final yesterdayPt = PrayerTimes(
+         pt.coordinates,
+         DateComponents.from(yesterday),
+         pt.calculationParameters,
+       );
+       currentTime = yesterdayPt.isha;
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8), 
       padding: const EdgeInsets.symmetric(vertical: 18), 
@@ -390,8 +501,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround, 
             children: [ 
-              _prayerCol("CURRENT", current.name.toUpperCase(), pt.timeForPrayer(current)), 
-              _prayerCol("NEXT", next.name.toUpperCase(), pt.timeForPrayer(next)) 
+              _prayerCol("CURRENT", currentName, currentTime), 
+              _prayerCol("NEXT", nextName, nextTime) 
             ]
           ) 
         ]
@@ -449,6 +560,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(onTap: onTap, child: Container(decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18), border: Border.all(color: b)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [ Icon(i, color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight, size: 24), const SizedBox(height: 4), Flexible(child: FittedBox(child: Text(t, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)))) ])));
   }
 
+  Widget _circleIconButton({required IconData icon, required Color color, required Color iconColor, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        child: Icon(icon, color: iconColor, size: 18),
+      ),
+    );
+  }
+
   Widget _buildDeedsModule(bool isDark) {
     if (user == null) return const SizedBox();
     int currentDay = ((DateTime.now().day - 1) % 30) + 1;
@@ -469,9 +591,35 @@ class _HomeScreenState extends State<HomeScreen> {
             if (snapshot.hasData && snapshot.data!.exists) {
               var data = snapshot.data!.data() as Map<String, dynamic>;
               var rawDeeds = data['deeds'] ?? data['tasks'] ?? data['items'] ?? [];
-              if (rawDeeds is List) { tasks = rawDeeds.map((item) => (item is Map) ? {'title': item['title'] ?? item['name'] ?? 'Deed', 'points': (item['points'] ?? 2)} : {'title': 'Deed', 'points': 2}).toList(); }
+              if (rawDeeds is List) {
+                tasks = rawDeeds.map((item) {
+                  if (item is Map) {
+                    String title = (item['title'] ?? item['name'] ?? '').toString();
+                    if (title.trim().isEmpty) title = 'Deed';
+                    return {'title': title, 'points': (item['points'] ?? 2)};
+                  }
+                  return {'title': 'Deed', 'points': 2};
+                }).toList();
+              }
             }
-            if (tasks.isEmpty) { tasks = [{'title': 'Recite Surah Al-Mulk', 'points': 3}, {'title': 'Give a small Sadaqah', 'points': 2}, {'title': 'Read one page of Quran', 'points': 3}]; }
+            
+            final List defaultDeeds = [
+              {'title': 'Recite Surah Al-Mulk', 'points': 3},
+              {'title': 'Give a small Sadaqah', 'points': 2},
+              {'title': 'Read one page of Quran', 'points': 3}
+            ];
+            
+            // Filter out invalid/empty tasks first
+            tasks.removeWhere((t) => (t['title'] as String).trim() == 'Deed' || (t['title'] as String).isEmpty);
+
+            if (tasks.length < 3) {
+              for (var d in defaultDeeds) {
+                if (tasks.length >= 3) break;
+                if (!tasks.any((t) => t['title'] == d['title'])) {
+                  tasks.add(d);
+                }
+              }
+            }
             return Center(child: Container(constraints: const BoxConstraints(maxWidth: 800), margin: EdgeInsets.symmetric(horizontal: horizontalMargin, vertical: 10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [ Row(children: [ const Icon(Icons.auto_awesome, color: Colors.orange, size: 20), const SizedBox(width: 8), Text("Daily Sunnah & Deeds", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black87)) ]), Text("🔥 Streak: $currentStreak", style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)) ])),
                 ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: tasks.length, itemBuilder: (context, index) {

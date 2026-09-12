@@ -14,8 +14,8 @@ final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('en'));
 
 void main() async {
-  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  WidgetsFlutterBinding.ensureInitialized();
+  // Removed preserve to allow instant transition to custom splash
 
   await AppEnv.load();
   await TimezoneHelper.initialize();

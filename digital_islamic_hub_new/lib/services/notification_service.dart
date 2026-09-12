@@ -8,16 +8,28 @@ import '../core/timezone_helper.dart';
 import '../utils/notification_time.dart';
 import 'qaza_storage.dart';
 
+@pragma('vm:entry-point')
+Future<void> notificationTapBackground(NotificationResponse response) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('Background notification tap: ${response.actionId} (ID: ${response.id})');
+  
+  if (response.id != null) {
+    await NotificationService.plugin.cancel(response.id!);
+  }
+
+  await NotificationService.handleQazaAction(response.actionId);
+}
+
 class NotificationService {
   static final FlutterLocalNotificationsPlugin plugin =
       FlutterLocalNotificationsPlugin();
 
   static bool _initialized = false;
 
-  /// Channel IDs are versioned so Android recreates them with Azan sound.
-  static const String prayerChannelId = 'prayer_alerts_v2';
-  static const String qazaChannelId = 'qaza_checks_v2';
-  static const String safarChannelId = 'safar_dua_channel_v2';
+  /// Channel IDs are incremented to _v6 to force Android to recreate them fresh with sound settings.
+  static const String prayerChannelId = 'prayer_alerts_v6';
+  static const String qazaChannelId = 'qaza_checks_v6';
+  static const String safarChannelId = 'safar_dua_channel_v6';
 
   static Future<void> init() async {
     if (kIsWeb) return;
@@ -41,7 +53,13 @@ class NotificationService {
 
     await plugin.initialize(
       settings,
-      onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse,
+      onDidReceiveNotificationResponse: (details) async {
+        debugPrint('Foreground notification tap: ${details.actionId} (ID: ${details.id})');
+        if (details.id != null) {
+          await plugin.cancel(details.id!);
+        }
+        await handleQazaAction(details.actionId);
+      },
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
@@ -81,31 +99,45 @@ class NotificationService {
       await androidImplementation.createNotificationChannel(safarChannel);
     }
 
+    // 🚀 Critical: Check if app was launched via a notification action button from a completely terminated state!
+    try {
+      final NotificationAppLaunchDetails? launchDetails = await plugin.getNotificationAppLaunchDetails();
+      if (launchDetails != null && launchDetails.didNotificationLaunchApp) {
+        final res = launchDetails.notificationResponse;
+        if (res != null && res.actionId != null) {
+          debugPrint('🚀 App launched from notification action: ${res.actionId}');
+          if (res.id != null) {
+            await plugin.cancel(res.id!);
+          }
+          await handleQazaAction(res.actionId);
+        }
+      }
+    } catch (e) {
+      debugPrint('Launch details check error: $e');
+    }
+
     _initialized = true;
   }
 
-  @pragma('vm:entry-point')
-  static void notificationTapBackground(NotificationResponse response) async {
-    WidgetsFlutterBinding.ensureInitialized();
-    await handleQazaAction(response.actionId);
-  }
-
-  static void _onDidReceiveNotificationResponse(
-      NotificationResponse response) async {
-    await handleQazaAction(response.actionId);
-  }
-
   static Future<void> handleQazaAction(String? actionId) async {
+    if (actionId == null) return;
+    debugPrint('🚀 [NotificationService] Handling Action: $actionId');
     try {
       final prayer = QazaNotificationActions.prayerFrom(actionId);
-      if (prayer == null || !QazaStorage.prayers.contains(prayer)) return;
+      if (prayer == null) {
+        debugPrint('⚠️ [NotificationService] Invalid prayer name in actionId: $actionId');
+        return;
+      }
 
       if (QazaNotificationActions.isNo(actionId)) {
-        await QazaStorage.incrementQaza(prayer);
+        debugPrint('➕ [NotificationService] Incrementing Qaza for $prayer');
+        final newVal = await QazaStorage.incrementQaza(prayer);
+        debugPrint('✅ [NotificationService] New Qaza count for $prayer: $newVal');
+      } else if (QazaNotificationActions.isYes(actionId)) {
+        debugPrint('👌 [NotificationService] Prayed on time for $prayer');
       }
-      // Yes = prayed on time. Qaza count is left unchanged.
     } catch (e) {
-      debugPrint('Qaza action error: $e');
+      debugPrint('❌ [NotificationService] Action handler error: $e');
     }
   }
 
@@ -137,7 +169,7 @@ class NotificationService {
     priority: Priority.max,
     playSound: true,
     sound: RawResourceAndroidNotificationSound('azan'),
-    audioAttributesUsage: AudioAttributesUsage.alarm,
+    audioAttributesUsage: AudioAttributesUsage.alarm, // Changed to alarm to ensure Azan audio stream bypasses notification muting on some devices
     category: AndroidNotificationCategory.alarm,
     fullScreenIntent: true,
     visibility: NotificationVisibility.public,
@@ -170,6 +202,11 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.high,
           playSound: true,
+          styleInformation: BigTextStyleInformation(
+            "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ\n\nDon't forget to read Safar Dua for a blessed journey.",
+            contentTitle: 'Traveling? 🚗 Safar Dua',
+            summaryText: 'Travel Safety Reminder',
+          ),
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -178,8 +215,8 @@ class NotificationService {
       );
       await plugin.show(
         888,
-        'Traveling? 🚗',
-        "Don't forget to read Safar Dua for a blessed journey.",
+        'Traveling? 🚗 Safar Dua',
+        "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا...",
         details,
       );
     } catch (e) {
@@ -193,6 +230,7 @@ class NotificationService {
     try {
       await init();
       final scheduledTime = NotificationTime.nextDailyInstance(time);
+      debugPrint('📅 [NotificationService] Scheduling $name at $scheduledTime (Original: $time)');
 
       await plugin.zonedSchedule(
         id,
@@ -205,22 +243,42 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
       );
+      debugPrint('✅ [NotificationService] Scheduled $name successfully.');
     } catch (e) {
-      debugPrint('Schedule prayer notification error ($name): $e');
+      debugPrint('❌ [NotificationService] Schedule error ($name): $e');
+      try {
+        debugPrint('⚠️ [NotificationService] Retrying with inexact schedule for $name...');
+        final scheduledTime = NotificationTime.nextDailyInstance(time);
+        await plugin.zonedSchedule(
+          id,
+          'Time for $name',
+          "Allah-hu-Akbar! It's time for $name prayer.",
+          scheduledTime,
+          _prayerDetails,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time,
+        );
+      } catch (e2) {
+        debugPrint('❌ [NotificationService] Fallback schedule error: $e2');
+      }
     }
   }
 
   static Future<void> testInstant() async {
     if (kIsWeb) return;
     try {
+      debugPrint('🔔 [NotificationService] Sending test notification...');
       await plugin.show(
         99,
         'حي على الصلاة',
         'Azan sound testing... Allah-hu-Akbar!',
         _prayerDetails,
       );
+      debugPrint('✅ [NotificationService] Test notification sent.');
     } catch (e) {
-      debugPrint('Test azan error: $e');
+      debugPrint('❌ [NotificationService] Test azan error: $e');
     }
   }
 
@@ -232,9 +290,4 @@ class NotificationService {
       debugPrint('Cancel notification error: $e');
     }
   }
-}
-
-@pragma('vm:entry-point')
-void notificationTapBackground(NotificationResponse response) {
-  NotificationService.notificationTapBackground(response);
 }

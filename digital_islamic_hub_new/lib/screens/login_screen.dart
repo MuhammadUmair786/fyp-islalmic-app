@@ -43,20 +43,32 @@ class _LoginScreenState extends State<LoginScreen> {
         serverClientId: _serverClientId,
       );
 
+      debugPrint('🚀 [GoogleSignIn] Starting signIn()...');
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
+        debugPrint('⚠️ [GoogleSignIn] User cancelled selection.');
         return;
       }
+      debugPrint('✅ [GoogleSignIn] User: ${googleUser.email}');
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
+      
+      if (googleAuth.idToken == null) {
+        debugPrint('❌ [GoogleSignIn] idToken is NULL. Check SHA-1 and Firebase configuration.');
+        _showSnackBar('Google Sign-In configuration error. Please contact support.', isError: true);
+        return;
+      }
+
+      debugPrint('🔑 [GoogleSignIn] Got idToken: ${googleAuth.idToken?.substring(0, 10)}...');
 
       final AuthCredential credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
         accessToken: googleAuth.accessToken,
       );
 
+      debugPrint('🔥 [FirebaseAuth] Signing in...');
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
 
@@ -103,8 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } on FirebaseAuthException catch (e) {
+      debugPrint('❌ [FirebaseAuthException] Code: ${e.code}, Message: ${e.message}');
       _showSnackBar(AuthErrors.fromFirebase(e), isError: true);
     } catch (e) {
+      debugPrint('❌ [GoogleSignIn Error] $e');
       _showSnackBar(AuthErrors.fromAny(e), isError: true);
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
@@ -164,11 +178,31 @@ class _LoginScreenState extends State<LoginScreen> {
           return;
         }
 
-        _showSnackBar('User record not found in database.', isError: true);
+        // 🚀 Fix: If Firebase Auth user exists but no Firestore record, create it (Sync issue)
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'displayName': InputValidators.sanitize(user.displayName) == ''
+              ? 'User'
+              : user.displayName,
+          'email': user.email,
+          'role': 'user',
+          'status': 'active',
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
+      debugPrint('❌ [Login Error] Code: ${e.code}, Message: ${e.message}');
       _showSnackBar(AuthErrors.fromFirebase(e), isError: true);
     } catch (e) {
+      debugPrint('❌ [General Login Error] $e');
       _showSnackBar(AuthErrors.fromAny(e), isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);

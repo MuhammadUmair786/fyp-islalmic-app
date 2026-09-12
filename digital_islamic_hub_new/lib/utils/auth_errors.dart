@@ -4,8 +4,9 @@ class AuthErrors {
   static String fromFirebase(FirebaseAuthException error) {
     switch (error.code) {
       case 'user-not-found':
+        return 'No account found with this email. Please sign up.';
       case 'invalid-credential':
-        return 'You are not registered. Please create an account first.';
+        return 'Invalid email or password. Please try again.';
       case 'wrong-password':
         return 'Incorrect password. Please try again.';
       case 'invalid-email':

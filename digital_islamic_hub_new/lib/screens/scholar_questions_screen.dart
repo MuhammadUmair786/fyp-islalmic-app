@@ -14,9 +14,10 @@ class ScholarQuestionsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Consultation Inquiries", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text("Consultation Inquiries", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18)),
         backgroundColor: isDark ? AppTheme.primaryDark : AppTheme.primaryLight,
         foregroundColor: Colors.white,
+        centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -26,13 +27,24 @@ class ScholarQuestionsScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: AppTheme.accentGreen));
+            return const Center(child: CircularProgressIndicator(color: AppTheme.accentGreen));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
-              child: Text(
-                "No subscription inquiries found for this scholar.",
-                style: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade600, fontSize: 16),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inbox_outlined, size: 60, color: isDark ? Colors.white24 : Colors.grey.shade300),
+                    const SizedBox(height: 16),
+                    Text(
+                      "No subscription inquiries found for this scholar.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade600, fontSize: 16),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -189,7 +201,7 @@ class UserChatDetailScreen extends StatefulWidget {
 
 class _UserChatDetailScreenState extends State<UserChatDetailScreen> {
   final Map<String, TextEditingController> _controllers = {};
-  bool _isLoading = false;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -203,7 +215,7 @@ class _UserChatDetailScreenState extends State<UserChatDetailScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _isSubmitting = true);
 
     try {
       await FirebaseFirestore.instance.collection('user_questions').doc(questionId).update({
@@ -234,11 +246,11 @@ class _UserChatDetailScreenState extends State<UserChatDetailScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Answer sent successfully!"), backgroundColor: Colors.green));
-        setState(() => _isLoading = false);
+        setState(() => _isSubmitting = false);
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
       }
     }
@@ -247,13 +259,15 @@ class _UserChatDetailScreenState extends State<UserChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(widget.userName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text(widget.userName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18)),
         backgroundColor: isDark ? AppTheme.primaryDark : AppTheme.primaryLight,
         foregroundColor: Colors.white,
+        centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -263,7 +277,7 @@ class _UserChatDetailScreenState extends State<UserChatDetailScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: AppTheme.accentGreen));
+            return const Center(child: CircularProgressIndicator(color: AppTheme.accentGreen));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
@@ -308,214 +322,211 @@ class _UserChatDetailScreenState extends State<UserChatDetailScreen> {
                 _controllers[qId] = TextEditingController(text: data['scholarResponse'] ?? "");
               }
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                elevation: isDark ? 0 : 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                color: isDark ? Colors.white.withAlpha(12) : Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: Card(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    elevation: isDark ? 0 : 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    color: isDark ? Colors.white.withAlpha(12) : Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
-                            children: [
-                              Icon(Icons.person_outline, size: 18, color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight),
-                              const SizedBox(width: 6),
-                              Text(
-                                "User: ${widget.userName}",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            formattedDateTime,
-                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: isAnswered ? Colors.green.withAlpha(38) : Colors.orange.withAlpha(38),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              isAnswered ? "Answered" : "Pending Pass",
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: isAnswered ? Colors.green : Colors.orange,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withAlpha(38),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              "Your Share: RS $scholarShare",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 20),
-
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.blue.withAlpha(20) : Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.blue.withAlpha(70)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "User Question",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              questionText,
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      if (additionalNote != null && additionalNote.trim().isNotEmpty) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.purple.withAlpha(20) : Colors.purple.shade50,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.purple.withAlpha(70)),
-                          ),
-                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                "Additional Note / Message",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.purple),
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.person_outline, size: 18, color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        "User: ${widget.userName}",
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 4),
                               Text(
-                                additionalNote,
-                                style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
+                                formattedDateTime,
+                                style: TextStyle(fontSize: 10, color: isDark ? Colors.white38 : Colors.grey.shade600),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isAnswered ? Colors.green.withAlpha(30) : Colors.orange.withAlpha(30),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  isAnswered ? "Answered" : "Pending Pass",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: isAnswered ? Colors.green : Colors.orange,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withAlpha(30),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  "Share: RS $scholarShare",
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 24),
 
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.orange.withAlpha(20) : Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.orange.withAlpha(70)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "AI Answer Reference",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.orange),
+                          _buildInquiryBox(
+                            title: "User Question",
+                            content: questionText,
+                            color: Colors.blue,
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 12),
+
+                          if (additionalNote != null && additionalNote.trim().isNotEmpty) ...[
+                            _buildInquiryBox(
+                              title: "Additional Note",
+                              content: additionalNote,
+                              color: Colors.purple,
+                              isDark: isDark,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              aiAnswer,
-                              style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
+                            const SizedBox(height: 12),
+                          ],
+
+                          _buildInquiryBox(
+                            title: "AI Reference Answer",
+                            content: aiAnswer,
+                            color: Colors.orange,
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 20),
+
+                          Row(
+                            children: [
+                              Icon(Icons.rate_review_outlined, size: 20, color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Your Professional Answer:",
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _controllers[qId],
+                            maxLines: 5,
+                            enabled: !isAnswered,
+                            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: "Provide your expert verification...",
+                              hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey),
+                              filled: true,
+                              fillColor: isDark ? Colors.black26 : Colors.grey.shade50,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                              contentPadding: const EdgeInsets.all(15),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          if (!isAnswered) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isDark ? AppTheme.accentGreen : AppTheme.primaryLight,
+                                  foregroundColor: isDark ? AppTheme.primaryDark : Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : () => _submitAnswer(qId, _controllers[qId]!.text, widget.userId, scholarName),
+                                child: _isSubmitting
+                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                    : const Text("Submit Verification", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              ),
+                            ),
+                          ] else ...[
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withAlpha(20),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.green.withAlpha(50)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      "Successfully submitted and verified.",
+                                      style: TextStyle(color: isDark ? Colors.greenAccent : Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Icon(Icons.edit_note, size: 20, color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight),
-                          const SizedBox(width: 6),
-                          Text(
-                            "Scholar Consultation Answer:",
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _controllers[qId],
-                        maxLines: 4,
-                        enabled: !isAnswered,
-                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                        decoration: InputDecoration(
-                          hintText: "Enter your expert verification/answer",
-                          hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey),
-                          filled: true,
-                          fillColor: isDark ? Colors.black26 : Colors.grey.shade100,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      if (!isAnswered) ...[
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark ? AppTheme.accentGreen : AppTheme.primaryLight,
-                              foregroundColor: isDark ? AppTheme.primaryDark : Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            onPressed: _isLoading
-                                ? null
-                                : () => _submitAnswer(qId, _controllers[qId]!.text, widget.userId, scholarName),
-                            child: _isLoading
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text("Submit Consultation Answer", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                          ),
-                        ),
-                      ] else ...[
-                        Row(
-                          children: [
-                            const Icon(Icons.check_circle, color: Colors.green, size: 18),
-                            const SizedBox(width: 6),
-                            Text(
-                              "Answer has been submitted successfully.",
-                              style: TextStyle(color: isDark ? Colors.greenAccent : Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               );
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildInquiryBox({required String title, required String content, required Color color, required bool isDark}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? color.withAlpha(25) : color.withAlpha(15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withAlpha(50)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: color, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            content,
+            style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87, height: 1.4),
+          ),
+        ],
       ),
     );
   }

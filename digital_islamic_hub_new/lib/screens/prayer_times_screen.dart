@@ -29,9 +29,24 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
   @override
   void initState() {
     super.initState();
+    PrayerService.prayerTimesNotifier.addListener(_onPrayerTimesUpdated);
     _initData();
     // 🚀 Request permissions without blocking the data loading
     Future.microtask(() => NotificationService.requestPermissions());
+  }
+
+  void _onPrayerTimesUpdated() {
+    if (mounted) {
+      setState(() {
+        _prayerTimes = PrayerService.prayerTimesNotifier.value;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    PrayerService.prayerTimesNotifier.removeListener(_onPrayerTimesUpdated);
+    super.dispose();
   }
 
   Future<void> _initData() async {

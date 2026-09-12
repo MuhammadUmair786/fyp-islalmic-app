@@ -43,131 +43,36 @@ class _ScholarDashboardState extends State<ScholarDashboard> {
             title: const Text("Scholar Portal", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             centerTitle: true,
             actions: [
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('notifications')
-                    .where('scholarId', isEqualTo: user?.uid)
-                    .where('isRead', isEqualTo: false)
-                    .snapshots(),
-                builder: (context, notifSnapshot) {
-                  int unreadCount = 0;
-                  if (notifSnapshot.hasData) {
-                    unreadCount = notifSnapshot.data!.docs.length;
-                  }
-
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.notifications_active_outlined,
-                          size: 26,
-                          color: unreadCount > 0 ? AppTheme.accentGreen : Colors.white,
-                        ),
-                        tooltip: "Notifications",
-                        onPressed: () {
-                          if (user != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ScholarNotificationsScreen(
-                                  currentScholarId: user!.uid,
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                      if (unreadCount > 0)
-                        Positioned(
-                          right: 6,
-                          top: 6,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              '$unreadCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                icon: Padding(
-                  padding: const EdgeInsets.all(2.0),
-                  child: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.white24,
-                    backgroundImage: (profileImageUrl != null && profileImageUrl.isNotEmpty)
-                        ? NetworkImage(profileImageUrl) as ImageProvider
-                        : null,
-                    child: (profileImageUrl == null || profileImageUrl.isEmpty)
-                        ? const Icon(Icons.person_outline_rounded, size: 18, color: Colors.white)
-                        : null,
-                  ),
-                ),
-                tooltip: "Profile",
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ScholarProfileScreen()),
-                ),
-              ),
-              const SizedBox(width: 8),
+              _buildNotificationIcon(user?.uid, isDark),
+              _buildProfileIcon(profileImageUrl, isDark),
+              const SizedBox(width: 10),
             ],
           ),
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Assalamu Alaikum,", style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 14)),
-                  const SizedBox(height: 4),
-                  Text(userName, style: TextStyle(color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight, fontWeight: FontWeight.bold, fontSize: 26)),
-                  const SizedBox(height: 30),
-
-                  Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 800),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 160,
-                              child: _DashboardCard(
-                                title: "Consultation Inquiries",
-                                icon: Icons.chat_bubble_rounded,
-                                color: Colors.orange,
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ScholarQuestionsScreen(scholarId: user!.uid))),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: SizedBox(
-                              height: 160,
-                              child: _DashboardCard(
-                                title: "Wallet & Earnings",
-                                icon: Icons.account_balance_wallet_rounded,
-                                color: Colors.blue,
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ScholarPaymentsScreen(scholarId: user!.uid))),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  Text("Assalamu Alaikum,", style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 14, letterSpacing: 0.5)),
+                  const SizedBox(height: 6),
+                  Text(userName, style: TextStyle(color: isDark ? AppTheme.accentGreen : AppTheme.primaryLight, fontWeight: FontWeight.bold, fontSize: 28)),
+                  const SizedBox(height: 40),
+                  
+                  _DashboardTile(
+                    title: "Consultation Inquiries",
+                    subtitle: "Manage and answer user queries",
+                    icon: Icons.forum_rounded,
+                    color: Colors.orange,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ScholarQuestionsScreen(scholarId: user!.uid))),
+                  ),
+                  const SizedBox(height: 18),
+                  _DashboardTile(
+                    title: "Wallet & Earnings",
+                    subtitle: "Track your consultation revenue",
+                    icon: Icons.account_balance_wallet_rounded,
+                    color: Colors.blueAccent,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ScholarPaymentsScreen(scholarId: user!.uid))),
                   ),
                 ],
               ),
@@ -177,15 +82,52 @@ class _ScholarDashboardState extends State<ScholarDashboard> {
       },
     );
   }
+
+  Widget _buildNotificationIcon(String? uid, bool isDark) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('notifications').where('scholarId', isEqualTo: uid).where('isRead', isEqualTo: false).snapshots(),
+      builder: (context, snapshot) {
+        int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: Icon(Icons.notifications_outlined, size: 28, color: count > 0 ? AppTheme.accentGreen : Colors.white),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ScholarNotificationsScreen(currentScholarId: uid ?? ""))),
+            ),
+            if (count > 0)
+              Positioned(right: 10, top: 10, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)))),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProfileIcon(String? url, bool isDark) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ScholarProfileScreen())),
+      child: Container(
+        margin: const EdgeInsets.only(left: 5),
+        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white24, width: 1.5)),
+        child: CircleAvatar(
+          radius: 16,
+          backgroundColor: Colors.white10,
+          backgroundImage: (url != null && url.isNotEmpty) ? NetworkImage(url) : null,
+          child: (url == null || url.isEmpty) ? const Icon(Icons.person, size: 18, color: Colors.white) : null,
+        ),
+      ),
+    );
+  }
 }
 
-class _DashboardCard extends StatelessWidget {
+class _DashboardTile extends StatelessWidget {
   final String title;
+  final String subtitle;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _DashboardCard({required this.title, required this.icon, required this.color, required this.onTap});
+  const _DashboardTile({required this.title, required this.subtitle, required this.icon, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -193,26 +135,32 @@ class _DashboardCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withAlpha(15) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [if (!isDark) BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 3))],
-          border: Border.all(color: isDark ? Colors.white10 : AppTheme.primaryLight.withAlpha(30)),
+          color: isDark ? Colors.white.withAlpha(12) : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [if (!isDark) BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 15, offset: const Offset(0, 8))],
+          border: Border.all(color: isDark ? Colors.white10 : AppTheme.primaryLight.withAlpha(15)),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(16)),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.black54)),
+                ],
               ),
             ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: isDark ? Colors.white24 : Colors.grey.shade300),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/notification_service.dart';
 import '../services/safar_dua_service.dart';
 import '../theme/app_theme.dart';
 
@@ -77,15 +78,21 @@ class _SafarDuaScreenState extends State<SafarDuaScreen> {
         title: const Text('Safar ki Dua',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active_outlined, color: Colors.white),
+            onPressed: () => NotificationService.showSafarDuaNotification(),
+            tooltip: 'Test Safar Notification',
+          ),
+        ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 700),
-              child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20), // Reduced top padding
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 700),
                 child: Column(
                   children: [
                     _buildFeatureToggle(isDark, cardColor, primaryColor),

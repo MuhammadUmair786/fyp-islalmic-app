@@ -30,45 +30,90 @@ class QazaNotificationService {
 
   static Future<void> _scheduleCheck(
       int id, String prayer, DateTime qazaEndTime) async {
-    final scheduledTime = NotificationTime.nextDailyInstance(qazaEndTime);
+    try {
+      final scheduledTime = NotificationTime.nextDailyInstance(qazaEndTime);
+      debugPrint('📅 [QazaService] Scheduling $prayer check at $scheduledTime');
 
-    await NotificationService.plugin.zonedSchedule(
-      id,
-      'Qaza Check: $prayer Namaz',
-      'Waqt Khatam Ho Gaya Hai: Kya aap ne $prayer ki namaz ada kar li hai?',
-      scheduledTime,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          NotificationService.qazaChannelId,
-          'Qaza Namaz Reminders',
-          channelDescription: 'Reminders at the end of each prayer time',
-          importance: Importance.max,
-          priority: Priority.high,
-          actions: [
-            AndroidNotificationAction(
-              QazaNotificationActions.yesId(prayer),
-              '✔️ Yes (Parh Li)',
-              showsUserInterface: false,
-              cancelNotification: true,
-            ),
-            AndroidNotificationAction(
-              QazaNotificationActions.noId(prayer),
-              '❌ No (Add to Qaza)',
-              showsUserInterface: false,
-              cancelNotification: true,
-            ),
-          ],
+      await NotificationService.plugin.zonedSchedule(
+        id,
+        'Qaza Check: $prayer Namaz',
+        'Time has run out: Have you offered the $prayer prayer?',
+        scheduledTime,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            NotificationService.qazaChannelId,
+            'Qaza Namaz Reminders',
+            channelDescription: 'Reminders at the end of each prayer time',
+            importance: Importance.max,
+            priority: Priority.high,
+            actions: [
+              AndroidNotificationAction(
+                QazaNotificationActions.yesId(prayer),
+                '✔️ Yes (Done)',
+                showsUserInterface: true, // Opens app for "click feel"
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                QazaNotificationActions.noId(prayer),
+                '❌ No (Qaza)',
+                showsUserInterface: true, // Opens app for "click feel"
+                cancelNotification: true,
+              ),
+            ],
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentSound: true,
+          ),
         ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentSound: true,
-        ),
-      ),
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: prayer,
-    );
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: prayer,
+      );
+    } catch (e) {
+      debugPrint('❌ [QazaService] Schedule error for $prayer: $e');
+      // Fallback to inexact
+      try {
+        final scheduledTime = NotificationTime.nextDailyInstance(qazaEndTime);
+        await NotificationService.plugin.zonedSchedule(
+          id,
+          'Qaza Check: $prayer Namaz',
+          'Time has run out: Have you offered the $prayer prayer?',
+          scheduledTime,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              NotificationService.qazaChannelId,
+              'Qaza Namaz Reminders',
+              channelDescription: 'Reminders at the end of each prayer time',
+              importance: Importance.max,
+              priority: Priority.high,
+              actions: [
+                AndroidNotificationAction(
+                  QazaNotificationActions.yesId(prayer),
+                  '✔️ Yes (Done)',
+                  showsUserInterface: false,
+                  cancelNotification: true,
+                ),
+                AndroidNotificationAction(
+                  QazaNotificationActions.noId(prayer),
+                  '❌ No (Add to Qaza)',
+                  showsUserInterface: false,
+                  cancelNotification: true,
+                ),
+              ],
+            ),
+          ),
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: prayer,
+        );
+      } catch (e2) {
+        debugPrint('❌ [QazaService] Fallback failed: $e2');
+      }
+    }
   }
 }
