@@ -312,16 +312,19 @@ class _MasjidSettingsScreenState extends State<MasjidSettingsScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: primaryGreen.withOpacity(0.15),
+                            color: primaryGreen.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(Icons.mosque, color: primaryGreen, size: 28),
                         ),
                         const SizedBox(width: 12),
-                        Text(
-                          "Active Mosque Location",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        Expanded(
+                          child: Text(
+                            "Active Mosque Location",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+                          ),
                         ),
                       ],
                     ),
@@ -380,7 +383,7 @@ class _MasjidSettingsScreenState extends State<MasjidSettingsScreen> {
                         ),
                         Switch(
                           value: _isAutoSilentEnabled,
-                          activeColor: primaryGreen,
+                          activeThumbColor: primaryGreen,
                           onChanged: (val) => setState(() => _isAutoSilentEnabled = val),
                         ),
                       ],
@@ -431,7 +434,7 @@ class _MasjidSettingsScreenState extends State<MasjidSettingsScreen> {
                   final isSelected = _activeMosque != null && _activeMosque!['id'] == item['id'];
 
                   return Card(
-                    color: isSelected ? primaryGreen.withOpacity(0.15) : cardColor,
+                    color: isSelected ? primaryGreen.withValues(alpha: 0.15) : cardColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(

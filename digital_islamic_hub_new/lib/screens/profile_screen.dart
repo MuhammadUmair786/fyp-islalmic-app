@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,9 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../main.dart';
+import '../services/safar_dua_service.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -255,9 +254,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 value: _isSafarDuaEnabled,
                 color: Colors.cyan,
                 isDark: isDark,
-                onChanged: (val) {
+                onChanged: (val) async {
                   setState(() => _isSafarDuaEnabled = val);
-                  _firestore.collection('users').doc(user!.uid).update({'safarDuaReminder': val});
+                  try {
+                    await SafarDuaService.setEnabled(val);
+                  } catch (e) {
+                    if (mounted) {
+                      setState(() => _isSafarDuaEnabled = !val);
+                    }
+                  }
                 },
               ),
             ]),
@@ -356,7 +361,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       secondary: _tileIcon(icon, isDark, color),
       title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
       value: value,
-      activeColor: AppTheme.accentGreen,
+      activeThumbColor: AppTheme.accentGreen,
       onChanged: onChanged,
     );
   }
@@ -379,12 +384,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       content: TextField(controller: _nameController),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c), child: const Text("Cancel")),
-        TextButton(onPressed: () {
-          _firestore.collection('users').doc(user!.uid).update({'displayName': _nameController.text});
-          setState(() {});
-          Navigator.pop(c);
+        TextButton(onPressed: () async {
+          final name = _nameController.text.trim();
+          if (name.isEmpty) return;
+          try {
+            await _firestore.collection('users').doc(user!.uid).update({'displayName': name});
+            if (mounted) setState(() {});
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Could not save name. Please try again.')),
+              );
+            }
+          }
+          if (c.mounted) Navigator.pop(c);
         }, child: const Text("Save")),
       ],
     ));
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 }

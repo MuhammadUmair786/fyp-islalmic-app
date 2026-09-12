@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -10,16 +9,17 @@ import 'package:adhan/adhan.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hijri/hijri_calendar.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../main.dart';
 import '../services/prayer_service.dart';
 import '../services/notification_service.dart';
+import '../services/safar_dua_service.dart';
 import '../core/database/db_helper.dart';
 import '../theme/app_theme.dart';
 import '../models/mood_data.dart';
+import '../widgets/app_logo.dart';
 import 'masjid_map_screen.dart';
 import 'masjid_silence_screen.dart';
 import 'prayer_times_screen.dart';
@@ -47,9 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final User? user = FirebaseAuth.instance.currentUser;
 
-  StreamSubscription<Position>? _positionStream;
-  bool _safarNotified = false;
-
   // Mood Based State
   MoodCategory? _selectedMood;
   Map<String, dynamic>? _activeAyahData;
@@ -72,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
         // 🔔 Ensure services are initialized (even if already done in main)
         await NotificationService.init(); 
 
-        _startSafarMonitor();
+        SafarDuaService.startIfEnabled();
         // Refresh with real location in background
         _refreshPrayerTimes();
       }
@@ -134,43 +131,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _startSafarMonitor() async {
-    if (user == null) return;
-    try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
-      if (userDoc.exists && (userDoc.data()?['safarDuaReminder'] ?? false)) {
-        
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-        }
-        
-        if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-          const double speedThresholdMs = 5.55; 
-          _positionStream = Geolocator.getPositionStream(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high, 
-              distanceFilter: 100,
-            ),
-          ).listen((Position position) {
-            if (position.speed >= speedThresholdMs && !_safarNotified) {
-              NotificationService.showSafarDuaNotification();
-              _safarNotified = true;
-              Timer(const Duration(hours: 4), () { 
-                if (mounted) _safarNotified = false; 
-              });
-            }
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint("Safar monitor error: $e");
-    }
-  }
-
   @override
   void dispose() {
-    _positionStream?.cancel();
+    SafarDuaService.stop();
     super.dispose();
   }
 
@@ -308,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Text("Digital Islamic Hub", style: GoogleFonts.poppins(fontSize: 9, color: Colors.grey.withValues(alpha: 0.5))),
                                 const SizedBox(width: 8),
-                                const CircleAvatar(radius: 9, backgroundColor: Colors.white, backgroundImage: AssetImage('assets/images/islamic_logo.png')),
+                                const AppLogo(radius: 9),
                               ],
                             ),
                           ],
@@ -351,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     Row(children: [
-                        const CircleAvatar(radius: 25, backgroundColor: Colors.white, backgroundImage: AssetImage('assets/images/islamic_logo.png')),
+                        const AppLogo(radius: 25),
                         const SizedBox(width: 12),
                         Text("Digital Islamic Hub", style: GoogleFonts.poppins(color: isDark ? Colors.white : AppTheme.primaryLight, fontWeight: FontWeight.bold, fontSize: 18)),
                     ]),

@@ -37,12 +37,12 @@ class _TasbeehCounterScreenState extends State<TasbeehCounterScreen> {
     });
     widget.onUpdate(_counter);
 
-    if (await Vibration.hasVibrator() ?? false) {
+    if (await Vibration.hasVibrator()) {
       Vibration.vibrate(duration: 60);
     }
 
     if (_counter == widget.zikar['goal']) {
-      if (await Vibration.hasVibrator() ?? false) {
+      if (await Vibration.hasVibrator()) {
         Vibration.vibrate(duration: 500);
       }
       _showSuccessDialog();

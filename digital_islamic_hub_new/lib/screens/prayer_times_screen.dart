@@ -117,7 +117,36 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
           ? const Center(
           child: CircularProgressIndicator(color: Color(0xFF2E7D32)))
           : (_prayerTimes == null)
-          ? const Center(child: Text("Location Error or Permission Denied"))
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.location_off, size: 42, color: Colors.grey),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Unable to load prayer times.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Check location permission and try again.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() => _isLoading = true);
+                        _initData();
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            )
           : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

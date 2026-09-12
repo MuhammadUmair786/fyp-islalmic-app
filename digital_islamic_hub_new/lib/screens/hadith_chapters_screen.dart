@@ -31,13 +31,25 @@ class _HadithChaptersScreenState extends State<HadithChaptersScreen> {
     _loadChapters();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _loadChapters() async {
-    final data = await DBHelper.getChaptersByBook(widget.collectionName);
-    setState(() {
-      _allChapters = data;
-      _filteredChapters = data;
-      _isLoading = false;
-    });
+    try {
+      final data = await DBHelper.getChaptersByBook(widget.collectionName);
+      if (!mounted) return;
+      setState(() {
+        _allChapters = data;
+        _filteredChapters = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   void _filterChapters(String query, bool isUrdu) {

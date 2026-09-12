@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
@@ -72,7 +73,7 @@
         <!-- Google Maps API Key Setup -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCRNlFMo61RxFWpB7svvQFYEYthfUE1dGI"/>
+            android:value="${GOOGLE_MAPS_API_KEY}"/>
 
         <meta-data
             android:name="flutterEmbedding"
@@ -84,6 +85,7 @@
             android:foregroundServiceType="location"
             android:exported="true" />
 
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
             android:exported="false">

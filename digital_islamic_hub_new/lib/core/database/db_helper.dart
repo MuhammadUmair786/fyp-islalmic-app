@@ -1,88 +1,100 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
-import 'dart:async';
-import 'package:flutter/foundation.dart';
 
 class DBHelper {
   static Database? _quranDb;
   static Database? _hadithDataDb;
   static Database? _hadithMetaDb;
 
-  static final _quranLock = Completer<void>();
-  static final _hadithDataLock = Completer<void>();
-  static final _hadithMetaLock = Completer<void>();
+  static Future<Database?>? _quranFuture;
+  static Future<Database?>? _hadithDataFuture;
+  static Future<Database?>? _hadithMetaFuture;
 
-  static bool _isQuranInitStarted = false;
-  static bool _isHadithDataInitStarted = false;
-  static bool _isHadithMetaInitStarted = false;
+  static const int _assetVersion = 501;
 
-  // 1. QURAN DATABASE
-  static Future<Database?> get db async {
-    if (_quranDb != null && _quranDb!.isOpen) return _quranDb;
-    if (!_isQuranInitStarted) {
-      _isQuranInitStarted = true;
-      try {
-        _quranDb = await initDb("quran_final_authentic_v2.db", "quran_v501.db");
-        _quranLock.complete();
-      } catch (e) {
-        _quranLock.completeError(e);
-        _isQuranInitStarted = false;
-      }
-    }
-    await _quranLock.future;
-    return _quranDb;
+  static Future<Database?> get db {
+    _quranFuture ??= _openCached(
+      () async => _quranDb = await initDb(
+          'quran_final_authentic_v2.db', 'quran_v501.db'),
+      () => _quranDb,
+      () => _quranFuture = null,
+      'Quran DB',
+    );
+    return _quranFuture!;
   }
 
-  // 2. HADITH DATA DATABASE
-  static Future<Database?> get mainHadithDb async {
-    if (_hadithDataDb != null && _hadithDataDb!.isOpen) return _hadithDataDb;
-    if (!_isHadithDataInitStarted) {
-      _isHadithDataInitStarted = true;
-      try {
-        _hadithDataDb = await initDb("hadiths_only.db", "hadith_data_v501.db");
-        _hadithDataLock.complete();
-      } catch (e) {
-        _hadithDataLock.completeError(e);
-        _isHadithDataInitStarted = false;
-      }
-    }
-    await _hadithDataLock.future;
-    return _hadithDataDb;
+  static Future<Database?> get mainHadithDb {
+    _hadithDataFuture ??= _openCached(
+      () async => _hadithDataDb =
+          await initDb('hadiths_only.db', 'hadith_data_v501.db'),
+      () => _hadithDataDb,
+      () => _hadithDataFuture = null,
+      'Hadith DB',
+    );
+    return _hadithDataFuture!;
   }
 
-  // 3. HADITH METADATA DATABASE
-  static Future<Database?> get hadithMetaDb async {
-    if (_hadithMetaDb != null && _hadithMetaDb!.isOpen) return _hadithMetaDb;
-    if (!_isHadithMetaInitStarted) {
-      _isHadithMetaInitStarted = true;
-      try {
-        _hadithMetaDb = await initDb("hadith_metadata.db", "hadith_meta_v501.db");
-        _hadithMetaLock.complete();
-      } catch (e) {
-        _hadithMetaLock.completeError(e);
-        _isHadithMetaInitStarted = false;
-      }
+  static Future<Database?> get hadithMetaDb {
+    _hadithMetaFuture ??= _openCached(
+      () async => _hadithMetaDb =
+          await initDb('hadith_metadata.db', 'hadith_meta_v501.db'),
+      () => _hadithMetaDb,
+      () => _hadithMetaFuture = null,
+      'Hadith meta DB',
+    );
+    return _hadithMetaFuture!;
+  }
+
+  static Future<Database?> _openCached(
+    Future<Database?> Function() opener,
+    Database? Function() current,
+    VoidCallback resetFuture,
+    String label,
+  ) async {
+    final existing = current();
+    if (existing != null && existing.isOpen) return existing;
+    try {
+      return await opener();
+    } catch (e) {
+      resetFuture();
+      debugPrint('$label init error: $e');
+      return null;
     }
-    await _hadithMetaLock.future;
-    return _hadithMetaDb;
   }
 
   static Future<Database> initDb(String assetName, String localName) async {
     var databasesPath = await getDatabasesPath();
     String path = join(databasesPath, localName);
+    final versionKey = 'db_asset_version_$localName';
 
-    // Refresh for v501
-    if (await databaseExists(path)) {
-      await deleteDatabase(path);
+    int storedVersion = 0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      storedVersion = prefs.getInt(versionKey) ?? 0;
+    } catch (_) {}
+
+    final exists = await databaseExists(path);
+    if (!exists || storedVersion < _assetVersion) {
+      if (exists) {
+        await deleteDatabase(path);
+      }
+
+      debugPrint('📦 Initializing $assetName (v$_assetVersion)...');
+      await Directory(dirname(path)).create(recursive: true);
+      ByteData data = await rootBundle.load('assets/database/$assetName');
+      List<int> bytes =
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+      await File(path).writeAsBytes(bytes, flush: true);
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(versionKey, _assetVersion);
+      } catch (_) {}
     }
-
-    debugPrint("📦 Initializing $assetName...");
-    await Directory(dirname(path)).create(recursive: true);
-    ByteData data = await rootBundle.load("assets/database/$assetName");
-    List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-    await File(path).writeAsBytes(bytes, flush: true);
 
     return await openDatabase(path, readOnly: true);
   }
