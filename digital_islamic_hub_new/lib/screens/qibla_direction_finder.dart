@@ -402,7 +402,7 @@ class _QiblaFinderScreenState extends State<QiblaFinderScreen> {
                 padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
-                  color: (guidance['color'] as Color).withOpacity(0.15),
+                  color: (guidance['color'] as Color).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(30),
                   border:
                   Border.all(color: guidance['color'] as Color, width: 1.5),

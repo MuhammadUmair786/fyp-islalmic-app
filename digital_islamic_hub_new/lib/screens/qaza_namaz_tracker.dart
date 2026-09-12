@@ -61,42 +61,49 @@ class _QazaRecordScreenState extends State<QazaRecordScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)))
-          : ListView(
+          : ListView.builder(
         padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            elevation: 3,
-            color: isDark ? const Color(0xFF1E3A29) : Colors.green.shade50,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Flexible(
-                    child: Text(
-                      'Total Qaza Namaz',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        itemCount: QazaStorage.prayers.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Column(
+              children: [
+                Card(
+                  elevation: 3,
+                  color: isDark ? const Color(0xFF1E3A29) : Colors.green.shade50,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Flexible(
+                          child: Text(
+                            'Total Qaza Namaz',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '$total',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '$total',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          for (final prayer in QazaStorage.prayers) _buildRow(prayer, size),
-        ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            );
+          }
+          return _buildRow(QazaStorage.prayers[index - 1], size);
+        },
       ),
     );
   }

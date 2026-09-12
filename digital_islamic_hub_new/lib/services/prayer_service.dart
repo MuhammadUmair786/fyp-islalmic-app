@@ -6,10 +6,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 class PrayerService {
   /// Returns cached times instantly if available, otherwise calculates for default location
   static Future<PrayerTimes> getQuickPrayerTimes() async {
-    final prefs = await SharedPreferences.getInstance();
-    double lat = prefs.getDouble('last_lat') ?? 24.8607;
-    double lng = prefs.getDouble('last_lng') ?? 67.0011;
-    return _calculateTimes(lat, lng);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      double lat = prefs.getDouble('last_lat') ?? 24.8607;
+      double lng = prefs.getDouble('last_lng') ?? 67.0011;
+      return _calculateTimes(lat, lng);
+    } catch (e) {
+      debugPrint('Quick prayer times error: $e');
+      return _calculateTimes(24.8607, 67.0011);
+    }
   }
 
   static Future<PrayerTimes?> getPrayerTimes() async {

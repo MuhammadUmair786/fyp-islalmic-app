@@ -64,11 +64,12 @@ class _HadithBooksScreenState extends State<HadithBooksScreen> {
             elevation: 0,
             centerTitle: true,
           ),
-          body: ListView(
+          body: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            children: [
-              if (_lastColl != null)
-                Padding(
+            itemCount: books.length + (_lastColl != null ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (_lastColl != null && index == 0) {
+                return Padding(
                   padding: const EdgeInsets.only(bottom: 20),
                   child: FadeInDown(
                     child: GestureDetector(
@@ -115,30 +116,30 @@ class _HadithBooksScreenState extends State<HadithBooksScreen> {
                       ),
                     ),
                   ),
-                ),
-
-              ...books.map((book) {
-                final displayName = isUrdu ? book['name_ur']! : book['name_en']!;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isDark ? Colors.white10 : Colors.green.shade50),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    leading: const Icon(Icons.menu_book, color: AppTheme.accentGreen),
-                    title: Text(displayName, style: isUrdu ? GoogleFonts.notoNastaliqUrdu(fontWeight: FontWeight.bold, fontSize: 16) : GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
-                    subtitle: Text(isUrdu ? "ابواب دیکھیں" : "Browse Chapters", style: const TextStyle(fontSize: 12)),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => HadithChaptersScreen(collectionName: book['collection']!, displayName: displayName))).then((_) => _loadProgress());
-                    },
-                  ),
                 );
-              }).toList(),
-            ],
+              }
+
+              final book = books[_lastColl != null ? index - 1 : index];
+              final displayName = isUrdu ? book['name_ur']! : book['name_en']!;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: isDark ? Colors.white10 : Colors.green.shade50),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  leading: const Icon(Icons.menu_book, color: AppTheme.accentGreen),
+                  title: Text(displayName, style: isUrdu ? GoogleFonts.notoNastaliqUrdu(fontWeight: FontWeight.bold, fontSize: 16) : GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
+                  subtitle: Text(isUrdu ? "ابواب دیکھیں" : "Browse Chapters", style: const TextStyle(fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => HadithChaptersScreen(collectionName: book['collection']!, displayName: displayName))).then((_) => _loadProgress());
+                  },
+                ),
+              );
+            },
           ),
         );
       },

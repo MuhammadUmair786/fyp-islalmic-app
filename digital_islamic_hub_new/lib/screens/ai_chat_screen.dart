@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../core/app_env.dart';
 import '../theme/app_theme.dart';
 import 'scholar_list_screen.dart';
 
@@ -35,22 +35,33 @@ class _AIChatScreenState extends State<AIChatScreen> {
   @override
   void initState() {
     super.initState();
-    _startNewChat();
-    _loadLatestChat(); // 🚀 Automatically load most recent chat
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await _loadLatestChat();
+    if (!mounted) return;
+    if (_currentChatId == null && _messages.isEmpty) {
+      _startNewChat();
+    }
   }
 
   void _startNewChat() {
     setState(() {
       _currentChatId = null;
-      _messages.clear();
-      _messages.add(Map.from(_initialGreeting));
+      _messages
+        ..clear()
+        ..add(Map.from(_initialGreeting));
     });
   }
 
   Future<void> _loadLatestChat() async {
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      if (mounted) _startNewChat();
+      return;
+    }
     setState(() => _isLoadingHistory = true);
-    
+
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
@@ -59,12 +70,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
           .orderBy('updatedAt', descending: true)
           .limit(1)
           .get();
-          
+
       if (snapshot.docs.isNotEmpty) {
         await _loadChatSession(snapshot.docs.first.id);
+      } else if (mounted) {
+        _startNewChat();
       }
     } catch (e) {
-      debugPrint("Error finding latest chat: $e");
+      debugPrint('Error finding latest chat: $e');
+      if (mounted) _startNewChat();
     } finally {
       if (mounted) setState(() => _isLoadingHistory = false);
     }
@@ -157,33 +171,42 @@ class _AIChatScreenState extends State<AIChatScreen> {
       }
 
       if (_currentChatId != null && currentUser != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currentUser!.uid)
-            .collection('ai_chats')
-            .doc(_currentChatId)
-            .collection('messages')
-            .add({
-          'role': 'user',
-          'content': userText,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        try {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUser!.uid)
+              .collection('ai_chats')
+              .doc(_currentChatId)
+              .collection('messages')
+              .add({
+            'role': 'user',
+            'content': userText,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          debugPrint('AI chat auto-save error: $e');
+        }
       }
 
-      final apiKey = dotenv.env['AI_API_KEY'] ?? "";
+      final apiKey = AppEnv.aiApiKey;
+      if (apiKey.isEmpty) {
+        throw StateError('missing_api_key');
+      }
+
       final response = await http.post(
-        Uri.parse("https://openrouter.ai/api/v1/chat/completions"),
+        Uri.parse('https://openrouter.ai/api/v1/chat/completions'),
         headers: {
-          "Authorization": "Bearer $apiKey",
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://digitalislamichub.com",
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://digitalislamichub.com',
         },
         body: jsonEncode({
-          "model": "google/learnlm-1.5-pro-experimental:free",
-          "messages": [
+          'model': 'google/learnlm-1.5-pro-experimental:free',
+          'messages': [
             {
-              "role": "system",
-              "content": "You are an expert Islamic Scholar (Mufti). Answer all user queries strictly based on the Quran and authentic Hadith with references."
+              'role': 'system',
+              'content':
+                  'You are an expert Islamic Scholar (Mufti). Answer all user queries strictly based on the Quran and authentic Hadith with references.'
             },
             ..._messages,
           ],
@@ -192,40 +215,49 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final aiText = data['choices'][0]['message']['content'];
+        final aiText = data['choices'][0]['message']['content'] as String? ?? '';
 
         if (mounted) {
           setState(() {
-            _messages.add({"role": "assistant", "content": aiText});
+            _messages.add({'role': 'assistant', 'content': aiText});
           });
           _scrollToBottom();
         }
 
-        if (_currentChatId != null && currentUser != null) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(currentUser!.uid)
-              .collection('ai_chats')
-              .doc(_currentChatId)
-              .collection('messages')
-              .add({
-            'role': 'assistant',
-            'content': aiText,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+        if (_currentChatId != null && currentUser != null && aiText.isNotEmpty) {
+          try {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUser!.uid)
+                .collection('ai_chats')
+                .doc(_currentChatId)
+                .collection('messages')
+                .add({
+              'role': 'assistant',
+              'content': aiText,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
 
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(currentUser!.uid)
-              .collection('ai_chats')
-              .doc(_currentChatId)
-              .update({'updatedAt': FieldValue.serverTimestamp()});
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUser!.uid)
+                .collection('ai_chats')
+                .doc(_currentChatId)
+                .update({'updatedAt': FieldValue.serverTimestamp()});
+          } catch (e) {
+            debugPrint('AI reply auto-save error: $e');
+          }
         }
+      } else {
+        throw Exception('AI request failed (${response.statusCode})');
       }
     } catch (e) {
       if (mounted) {
+        final message = e is StateError && e.message == 'missing_api_key'
+            ? 'AI is not configured. Add AI_API_KEY to your .env file.'
+            : 'Connection error. Please try again.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Connection error. Please try again.")),
+          SnackBar(content: Text(message)),
         );
       }
     } finally {
@@ -360,7 +392,13 @@ class _AIChatScreenState extends State<AIChatScreen> {
                 : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).collection('ai_chats').orderBy('updatedAt', descending: true).snapshots(),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Could not load chat history.'));
+                }
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('No saved chats yet'));
+                }
                 return ListView.builder(
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
@@ -379,5 +417,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 }

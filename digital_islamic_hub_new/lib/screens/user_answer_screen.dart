@@ -227,53 +227,60 @@ class UserAnswerScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 16,
-                                backgroundColor: isDark ? AppTheme.accentGreen : AppTheme.primaryLight,
-                                child: Icon(Icons.school, size: 18, color: isDark ? AppTheme.primaryDark : Colors.white),
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    scholarName,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'TID: ${data['transactionId'] ?? data['tid'] ?? 'N/A'}',
-                                    style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: isDark ? AppTheme.accentGreen : AppTheme.primaryLight,
+                            child: Icon(Icons.school, size: 18, color: isDark ? AppTheme.primaryDark : Colors.white),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: showAlertBadge
-                                  ? Colors.orange.withOpacity(0.15)
-                                  : (isAnswered ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1)),
-                              borderRadius: BorderRadius.circular(20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  scholarName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'TID: ${data['transactionId'] ?? data['tid'] ?? 'N/A'}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12),
+                                ),
+                              ],
                             ),
-                            child: Text(
-                              showAlertBadge ? "New Answer Received!"
-                                  : (isAnswered ? "Viewed" : "Pending Review"),
-                              style: TextStyle(
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
                                 color: showAlertBadge
-                                    ? Colors.orange.shade800
-                                    : (isAnswered ? Colors.green.shade700 : Colors.grey.shade700),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                                    ? Colors.orange.withValues(alpha: 0.15)
+                                    : (isAnswered ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1)),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  showAlertBadge ? "New Answer Received!"
+                                      : (isAnswered ? "Viewed" : "Pending Review"),
+                                  style: TextStyle(
+                                    color: showAlertBadge
+                                        ? Colors.orange.shade800
+                                        : (isAnswered ? Colors.green.shade700 : Colors.grey.shade700),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
