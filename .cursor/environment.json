@@ -1,0 +1,21 @@
+{
+  "name": "Digital Islamic Hub (Flutter monorepo)",
+  "install": "bash .cursor/install.sh",
+  "chromeExecutablePath": "/usr/local/bin/google-chrome",
+  "ports": [
+    { "name": "hub-web", "port": 8080 },
+    { "name": "admin-web", "port": 8081 }
+  ],
+  "terminals": [
+    {
+      "name": "hub-web",
+      "command": "cd digital_islamic_hub_new && flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080",
+      "description": "Digital Islamic Hub app served for the web at http://localhost:8080"
+    },
+    {
+      "name": "admin-web",
+      "command": "cd admin_panel && flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8081",
+      "description": "Admin panel app served for the web at http://localhost:8081"
+    }
+  ]
+}
