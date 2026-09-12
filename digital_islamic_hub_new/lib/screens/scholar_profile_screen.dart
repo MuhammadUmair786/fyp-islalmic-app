@@ -368,7 +368,7 @@ class _ScholarProfileScreenState extends State<ScholarProfileScreen> {
       ),
       title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87)),
       value: value,
-      activeColor: AppTheme.accentGreen,
+      activeThumbColor: AppTheme.accentGreen,
       onChanged: onChanged,
     );
   }

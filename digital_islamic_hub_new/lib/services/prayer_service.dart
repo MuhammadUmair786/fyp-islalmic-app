@@ -33,10 +33,10 @@ class PrayerService {
       }
 
       // 2. Return whatever is in cache (Karachi default if empty)
-      return getQuickPrayerTimes();
+      return await getQuickPrayerTimes();
     } catch (e) {
       debugPrint("Prayer Service Error: $e");
-      return getQuickPrayerTimes();
+      return await getQuickPrayerTimes();
     }
   }
 

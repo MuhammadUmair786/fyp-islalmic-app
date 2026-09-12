@@ -84,6 +84,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
 
+        if (!mounted) return;
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),

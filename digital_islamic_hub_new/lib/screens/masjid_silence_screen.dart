@@ -383,7 +383,7 @@ class _MasjidSettingsScreenState extends State<MasjidSettingsScreen> {
                         ),
                         Switch(
                           value: _isAutoSilentEnabled,
-                          activeColor: primaryGreen,
+                          activeThumbColor: primaryGreen,
                           onChanged: (val) => setState(() => _isAutoSilentEnabled = val),
                         ),
                       ],
